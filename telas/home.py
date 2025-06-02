@@ -153,8 +153,26 @@ class Home(QMainWindow):
         # Espaçador
         item_layout.addStretch()
 
+        # Botão de editar
+        editar_button = QPushButton("✏️ Editar")
+        editar_button.setStyleSheet("""
+            QPushButton {
+                background-color: #17a2b8;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+                font-size: 12px;
+                margin-right: 10px;
+            }
+            QPushButton:hover {
+                background-color: #138496;
+            }
+        """)
+        editar_button.clicked.connect(lambda: self.abrir_edicao(paciente))
+        item_layout.addWidget(editar_button)
+
         # Botão de análises
-        analises_button = QPushButton("Análises de ferimentos")
+        analises_button = QPushButton("Ferimentos")
         analises_button.setStyleSheet("""
             QPushButton {
                 background-color: darkgreen;
@@ -236,6 +254,20 @@ class Home(QMainWindow):
 
         except Exception as e:
             print(f"Erro na filtragem: {e}")
+
+    def abrir_edicao(self, paciente):
+        """Abre a tela de edição do paciente"""
+        try:
+            current_pos = self.pos()
+
+            from telas.edicao_paciente import EdicaoPaciente
+            self.edicao_window = EdicaoPaciente(paciente)
+            self.edicao_window.move(current_pos)
+            self.edicao_window.show()
+            self.close()
+        except Exception as e:
+            print(f"Erro ao abrir edição de paciente: {e}")
+            QMessageBox.critical(self, "Erro", f"Erro ao abrir edição: {str(e)}")
 
     def abrir_analises(self, paciente):
         """Abre as análises de ferimentos do paciente (por enquanto só mensagem)"""
