@@ -5,7 +5,9 @@ from PyQt5.QtCore import Qt
 from banco import db
 from telas.home import Home
 from telas.register import Register
-from decorators import log_action, validate_input
+from logger import Logger
+
+
 class Login(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -13,14 +15,17 @@ class Login(QMainWindow):
         # Configurações da Janela
         self.setWindowTitle("BIO-CV")
         self.setGeometry(100, 100, 1000, 600)
-        self.setFixedSize(1000, 600)  # Define o tamanho fixo da janela
+        self.setFixedSize(1000, 600)
 
-        # Carrega a imagem e redimensiona para 64x64 pixels (ou outro tamanho desejado)
-        pixmap = QPixmap("../assets/Icon.png")
-        pixmap = pixmap.scaled(64, 64, aspectRatioMode=Qt.KeepAspectRatio, transformMode=Qt.SmoothTransformation)
-
-        # Define o ícone redimensionado para a janela
-        self.setWindowIcon(QIcon(pixmap))
+        # Tenta carregar ícone (sem quebrar se não encontrar)
+        try:
+            pixmap = QPixmap("assets/Icon.png")  # Caminho corrigido
+            if not pixmap.isNull():
+                pixmap = pixmap.scaled(64, 64, aspectRatioMode=Qt.KeepAspectRatio,
+                                       transformMode=Qt.SmoothTransformation)
+                self.setWindowIcon(QIcon(pixmap))
+        except:
+            pass  # Ignora se não conseguir carregar o ícone
 
         # Layout Principal
         self.central_widget = QWidget()
@@ -64,7 +69,7 @@ class Login(QMainWindow):
         self.password_input.setFixedHeight(50)
         form_layout.addWidget(self.password_input)
 
-        # Layout para Botões e Label "ou"
+        # Layout para Botões
         button_layout = QVBoxLayout()
         button_layout.setAlignment(Qt.AlignCenter)
         button_layout.setSpacing(10)
@@ -77,7 +82,7 @@ class Login(QMainWindow):
         self.login_button.clicked.connect(self.handle_login)
         button_layout.addWidget(self.login_button)
 
-        # Texto de Ou
+        # Texto "ou"
         self.or_label = QLabel("ou")
         self.or_label.setFont(QFont("Arial", 10))
         self.or_label.setAlignment(Qt.AlignCenter)
@@ -91,42 +96,71 @@ class Login(QMainWindow):
         self.register_button.clicked.connect(self.open_register)
         button_layout.addWidget(self.register_button)
 
-        # Adiciona o layout de botões e label ao layout principal
         form_layout.addLayout(button_layout)
 
-        # Ajuste da altura do form_widget para 70% da altura da janela
+        # Ajuste do formulário
         form_widget.setFixedHeight(500)
         form_widget.setFixedWidth(500)
         layout.addWidget(form_widget, alignment=Qt.AlignCenter)
 
     def handle_login(self):
-        email = self.email_input.text()
-        password = self.password_input.text()
+        try:
+            email = self.email_input.text()
+            password = self.password_input.text()
 
-        # Valida se os campos foram preenchidos
-        if not email or not password:
-            QMessageBox.warning(self, "Erro", "Por favor, preencha todos os campos!")
-            return
+            # Valida se os campos foram preenchidos
+            if not email or not password:
+                QMessageBox.warning(self, "Erro", "Por favor, preencha todos os campos!")
+                return
 
-        # Verifica se o usuário existe
-        usuario = db.verificar_usuario(email, password)
-        if usuario:
-            QMessageBox.information(self, "Login bem-sucedido", "Você fez login com sucesso!")
+            # Verifica se o usuário existe
+            usuario = db.verificar_usuario(email, password)
 
-            log_action(usuario['id'], "Usuário fez login")(lambda: None)()
-            self.open_home()  # Abre a tela principal (Home)
-        else:
-            QMessageBox.warning(self, "Erro", "E-mail ou senha incorretos. Tente novamente.")
+            if usuario:
+                QMessageBox.information(self, "Login bem-sucedido", "Você fez login com sucesso!")
+
+                # Registra o log
+                try:
+                    Logger.registrar_acao(usuario['id'], "Usuário fez login")
+                except Exception as log_error:
+                    print(f"Erro ao registrar log: {log_error}")
+
+                self.open_home()
+            else:
+                QMessageBox.warning(self, "Erro", "E-mail ou senha incorretos. Tente novamente.")
+
+        except Exception as e:
+            print(f"Erro no login: {e}")
+            QMessageBox.critical(self, "Erro", f"Erro ao fazer login: {str(e)}")
 
     def open_home(self):
-        self.home = Home()  # Abre a tela principal (Home)
-        self.home.show()
-        self.close()  # Fecha a tela de login
+        try:
+            # Pega a posição atual da janela
+            current_pos = self.pos()
+
+            self.home = Home()
+            # Define a nova janela na mesma posição
+            self.home.move(current_pos)
+            self.home.show()
+            self.close()
+        except Exception as e:
+            print(f"Erro ao abrir home: {e}")
+            QMessageBox.critical(self, "Erro", f"Erro ao abrir tela principal: {str(e)}")
 
     def open_register(self):
-        self.cadastro_window = Register()  # Abre a tela de cadastro
-        self.cadastro_window.show()
-        self.close()  # Fecha a tela de login
+        try:
+            # Pega a posição atual da janela
+            current_pos = self.pos()
+
+            self.cadastro_window = Register()
+            # Define a nova janela na mesma posição
+            self.cadastro_window.move(current_pos)
+            self.cadastro_window.show()
+            self.close()
+        except Exception as e:
+            print(f"Erro ao abrir register: {e}")
+            QMessageBox.critical(self, "Erro", f"Erro ao abrir tela de cadastro: {str(e)}")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

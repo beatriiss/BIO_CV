@@ -3,44 +3,45 @@ from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import Qt
 import sys
 from banco import criar_usuario
-from decorators import log_action
+from logger import Logger
 import re
+
 
 class Register(QMainWindow):
     def __init__(self):
         super().__init__()
 
         # Configurações da Janela
-        self.setWindowTitle("Registro de Usuário")
+        self.setWindowTitle("Registro de Usuário - BIO-CV")
         self.setGeometry(100, 100, 1000, 600)
-        self.setFixedSize(1000, 600)  # Define o tamanho fixo da janela
+        self.setFixedSize(1000, 600)
 
-        # Adiciona ícone da janela
-        self.setWindowIcon(QIcon("../assets/Icon.png"))
+        # Tenta adicionar ícone
+        try:
+            self.setWindowIcon(QIcon("assets/Icon.png"))
+        except:
+            pass
 
         # Layout Principal
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         layout = QVBoxLayout(self.central_widget)
 
-
-
         # Formulário de Cadastro
         form_widget = QWidget()
         form_layout = QVBoxLayout(form_widget)
         form_layout.setAlignment(Qt.AlignCenter)
         form_layout.setSpacing(10)
-        form_layout.setContentsMargins(0, 0, 0, 0)  # Move o formulário para cima (margem superior negativa)
+        form_layout.setContentsMargins(0, 0, 0, 0)
 
         # Título
         self.title_label = QLabel("Insira seus dados para se cadastrar no BIO-CV")
         self.title_label.setFont(QFont("Arial", 14))
-        self.title_label.setAlignment(Qt.AlignCenter)  # Centraliza o texto
+        self.title_label.setAlignment(Qt.AlignCenter)
         self.title_label.setContentsMargins(0, 0, 0, 20)
         form_layout.addWidget(self.title_label)
-        #setContentsMargins(0, 0, 0, 0)  # Remove margens externas
 
-        # Campo de Nome de Usuário
+        # Campo de Nome
         self.username_label = QLabel("Nome de Usuário:")
         self.username_label.setFont(QFont("Arial", 10))
         form_layout.addWidget(self.username_label)
@@ -74,20 +75,21 @@ class Register(QMainWindow):
         self.email_input.setFixedHeight(50)
         form_layout.addWidget(self.email_input)
 
-        # Layout para Botões e Label "ou"
+        # Layout para Botões
         button_layout = QVBoxLayout()
         button_layout.setAlignment(Qt.AlignCenter)
         button_layout.setSpacing(10)
 
-        # Botão de Registro (estilizado como o de login)
+        # Botão de Registro
         self.register_button = QPushButton("Cadastro")
-        self.register_button.setStyleSheet("background-color: darkgreen; color: white;margin-top:30px; border-radius:5px")
+        self.register_button.setStyleSheet(
+            "background-color: darkgreen; color: white;margin-top:30px; border-radius:5px")
         self.register_button.setFixedHeight(80)
         self.register_button.setFixedWidth(450)
         self.register_button.clicked.connect(self.handle_register)
         button_layout.addWidget(self.register_button)
 
-        # Texto de Ou
+        # Texto "ou"
         self.or_label = QLabel("ou")
         self.or_label.setFont(QFont("Arial", 10))
         self.or_label.setAlignment(Qt.AlignCenter)
@@ -101,47 +103,68 @@ class Register(QMainWindow):
         self.back_button.clicked.connect(self.go_to_login)
         button_layout.addWidget(self.back_button)
 
-        # Adiciona o layout de botões e label ao layout principal
         form_layout.addLayout(button_layout)
 
-        # Ajuste da altura do form_widget para 70% da altura da janela
+        # Ajuste do formulário
         form_widget.setFixedHeight(600)
         form_widget.setFixedWidth(500)
         layout.addWidget(form_widget, alignment=Qt.AlignCenter)
 
     def handle_register(self):
-        username = self.username_input.text()
-        password = self.password_input.text()
-        email = self.email_input.text()
+        try:
+            username = self.username_input.text()
+            password = self.password_input.text()
+            email = self.email_input.text()
 
-        # Regex para validação de e-mail
-        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+            # Validações básicas
+            if not username or not password or not email:
+                QMessageBox.warning(self, "Erro", "Por favor, preencha todos os campos!")
+                return
 
-        if username and password and email:
+            # Validação de e-mail
+            email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
             if not re.match(email_regex, email):
                 QMessageBox.warning(self, "Erro", "Por favor, insira um e-mail válido!")
                 return
 
+            # Cria o usuário
+            usuario = criar_usuario(username, password, email)
+            QMessageBox.information(self, "Sucesso", "Usuário cadastrado com sucesso!")
+
+            # Registra o log
             try:
-                usuario = criar_usuario(username, password, email)
-                QMessageBox.information(self, "Sucesso", "Usuário cadastrado com sucesso!")
-                log_action(usuario['id'], "Usuario realizou cadastro")(lambda: None)()
+                Logger.registrar_acao(usuario['id'], "Usuario realizou cadastro")
+            except Exception as log_error:
+                print(f"Erro ao registrar log: {log_error}")
 
-                from telas.home import Home
-                self.home = Home()
-                self.home.show()
+            # Pega a posição atual da janela
+            current_pos = self.pos()
 
-                self.close()
-            except Exception as e:
-                QMessageBox.warning(self, "Erro", f"Ocorreu um erro ao cadastrar o usuário: {str(e)}")
-        else:
-            QMessageBox.warning(self, "Erro", "Por favor, preencha todos os campos!")
+            # Abre a home
+            from telas.home import Home
+            self.home = Home()
+            # Define a nova janela na mesma posição
+            self.home.move(current_pos)
+            self.home.show()
+            self.close()
+
+        except Exception as e:
+            print(f"Erro no cadastro: {e}")
+            QMessageBox.warning(self, "Erro", f"Ocorreu um erro ao cadastrar o usuário: {str(e)}")
 
     def go_to_login(self):
-        from telas.login import Login
-        self.login_window = Login()
-        self.login_window.show()
-        self.close()
+        try:
+            # Pega a posição atual da janela
+            current_pos = self.pos()
+
+            from telas.login import Login
+            self.login_window = Login()
+            # Define a nova janela na mesma posição
+            self.login_window.move(current_pos)
+            self.login_window.show()
+            self.close()
+        except Exception as e:
+            print(f"Erro ao voltar para login: {e}")
 
 
 if __name__ == "__main__":
