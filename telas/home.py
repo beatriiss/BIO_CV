@@ -269,13 +269,21 @@ class Home(QMainWindow):
             print(f"Erro ao abrir edição de paciente: {e}")
             QMessageBox.critical(self, "Erro", f"Erro ao abrir edição: {str(e)}")
 
+    # Substituir o método abrir_analises na telas/home.py (linha 183)
+
     def abrir_analises(self, paciente):
-        """Abre as análises de ferimentos do paciente (por enquanto só mensagem)"""
-        QMessageBox.information(
-            self,
-            "Análises de Ferimentos",
-            f"Funcionalidade em desenvolvimento!\n\nPaciente: {paciente['nome']}\nID: {paciente['id']}"
-        )
+        """Abre a lista de ferimentos do paciente"""
+        try:
+            current_pos = self.pos()
+
+            from telas.lista_ferimentos import ListaFerimentos
+            self.ferimentos_window = ListaFerimentos(paciente)
+            self.ferimentos_window.move(current_pos)
+            self.ferimentos_window.show()
+            self.close()
+        except Exception as e:
+            print(f"Erro ao abrir ferimentos: {e}")
+            QMessageBox.critical(self, "Erro", f"Erro ao abrir ferimentos: {str(e)}")
 
     def open_cadastro_paciente(self):
         """Abre a tela de cadastro de paciente"""
@@ -307,6 +315,8 @@ class Home(QMainWindow):
             self.login_window.show()
         except Exception as e:
             print(f"Erro no logout: {e}")
+
+
 
 
 if __name__ == "__main__":

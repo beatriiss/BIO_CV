@@ -225,3 +225,288 @@ def buscar_pacientes(termo_busca):
             cursor.close()
         if conexao:
             conexao.close()
+
+
+# Adicione essas funções ao arquivo banco/db.py
+
+# Adicionar essas funções ao arquivo banco/db.py
+
+def criar_ferimento(paciente_id, descricao, data_ocorrencia, localizacao):
+    """Cria um novo ferimento no banco de dados"""
+    conexao = None
+    cursor = None
+
+    try:
+        if not usuario_logado:
+            raise Exception("Usuário não está logado")
+
+        conexao = conectar()
+        cursor = conexao.cursor()
+
+        # Verifica se o paciente pertence ao usuário logado
+        verificacao_query = "SELECT id FROM pacientes WHERE id = %s AND usuario_id = %s"
+        cursor.execute(verificacao_query, (paciente_id, usuario_logado['id']))
+
+        if not cursor.fetchone():
+            raise Exception("Paciente não encontrado ou não pertence ao usuário")
+
+        query = """INSERT INTO ferimentos (paciente_id, descricao, data_ocorrencia, localizacao, created_at) 
+                   VALUES (%s, %s, %s, %s, NOW())"""
+
+        cursor.execute(query, (paciente_id, descricao, data_ocorrencia, localizacao))
+
+        ferimento_id = cursor.lastrowid
+
+        return {
+            "id": ferimento_id,
+            "paciente_id": paciente_id,
+            "descricao": descricao,
+            "data_ocorrencia": data_ocorrencia,
+            "localizacao": localizacao
+        }
+
+    except Exception as e:
+        print(f"Erro ao criar ferimento: {e}")
+        raise e
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conexao:
+            conexao.close()
+
+
+def listar_ferimentos(paciente_id):
+    """Lista todos os ferimentos de um paciente específico"""
+    conexao = None
+    cursor = None
+
+    try:
+        if not usuario_logado:
+            return []
+
+        conexao = conectar()
+        cursor = conexao.cursor()
+
+        # Verifica se o paciente pertence ao usuário logado
+        verificacao_query = "SELECT id FROM pacientes WHERE id = %s AND usuario_id = %s"
+        cursor.execute(verificacao_query, (paciente_id, usuario_logado['id']))
+
+        if not cursor.fetchone():
+            return []
+
+        query = """SELECT id, paciente_id, descricao, data_ocorrencia, localizacao, created_at 
+                   FROM ferimentos 
+                   WHERE paciente_id = %s 
+                   ORDER BY data_ocorrencia DESC, created_at DESC"""
+
+        cursor.execute(query, (paciente_id,))
+        ferimentos = cursor.fetchall()
+
+        # Converte para lista de dicionários
+        resultado = []
+        for ferimento in ferimentos:
+            resultado.append({
+                "id": ferimento[0],
+                "paciente_id": ferimento[1],
+                "descricao": ferimento[2],
+                "data_ocorrencia": ferimento[3],
+                "localizacao": ferimento[4],
+                "created_at": ferimento[5]
+            })
+
+        return resultado
+
+    except Exception as e:
+        print(f"Erro ao listar ferimentos: {e}")
+        return []
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conexao:
+            conexao.close()
+
+
+def buscar_ferimentos(paciente_id, termo_busca):
+    """Busca ferimentos por descrição ou localização"""
+    conexao = None
+    cursor = None
+
+    try:
+        if not usuario_logado:
+            return []
+
+        conexao = conectar()
+        cursor = conexao.cursor()
+
+        # Verifica se o paciente pertence ao usuário logado
+        verificacao_query = "SELECT id FROM pacientes WHERE id = %s AND usuario_id = %s"
+        cursor.execute(verificacao_query, (paciente_id, usuario_logado['id']))
+
+        if not cursor.fetchone():
+            return []
+
+        query = """SELECT id, paciente_id, descricao, data_ocorrencia, localizacao, created_at 
+                   FROM ferimentos 
+                   WHERE paciente_id = %s AND (descricao LIKE %s OR localizacao LIKE %s)
+                   ORDER BY data_ocorrencia DESC, created_at DESC"""
+
+        termo_like = f"%{termo_busca}%"
+        cursor.execute(query, (paciente_id, termo_like, termo_like))
+        ferimentos = cursor.fetchall()
+
+        # Converte para lista de dicionários
+        resultado = []
+        for ferimento in ferimentos:
+            resultado.append({
+                "id": ferimento[0],
+                "paciente_id": ferimento[1],
+                "descricao": ferimento[2],
+                "data_ocorrencia": ferimento[3],
+                "localizacao": ferimento[4],
+                "created_at": ferimento[5]
+            })
+
+        return resultado
+
+    except Exception as e:
+        print(f"Erro ao buscar ferimentos: {e}")
+        return []
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conexao:
+            conexao.close()
+
+
+def obter_ferimento_por_id(ferimento_id):
+    """Obtém um ferimento específico por ID"""
+    conexao = None
+    cursor = None
+
+    try:
+        if not usuario_logado:
+            return None
+
+        conexao = conectar()
+        cursor = conexao.cursor()
+
+        # Busca o ferimento e verifica se pertence ao usuário logado
+        query = """SELECT f.id, f.paciente_id, f.descricao, f.data_ocorrencia, f.localizacao, f.created_at,
+                          p.nome as paciente_nome
+                   FROM ferimentos f
+                   INNER JOIN pacientes p ON f.paciente_id = p.id
+                   WHERE f.id = %s AND p.usuario_id = %s"""
+
+        cursor.execute(query, (ferimento_id, usuario_logado['id']))
+        ferimento = cursor.fetchone()
+
+        if ferimento:
+            return {
+                "id": ferimento[0],
+                "paciente_id": ferimento[1],
+                "descricao": ferimento[2],
+                "data_ocorrencia": ferimento[3],
+                "localizacao": ferimento[4],
+                "created_at": ferimento[5],
+                "paciente_nome": ferimento[6]
+            }
+
+        return None
+
+    except Exception as e:
+        print(f"Erro ao obter ferimento: {e}")
+        return None
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conexao:
+            conexao.close()
+
+
+def atualizar_ferimento(ferimento_id, descricao, data_ocorrencia, localizacao):
+    """Atualiza um ferimento no banco de dados"""
+    conexao = None
+    cursor = None
+
+    try:
+        if not usuario_logado:
+            raise Exception("Usuário não está logado")
+
+        conexao = conectar()
+        cursor = conexao.cursor()
+
+        # Verifica se o ferimento pertence ao usuário logado
+        verificacao_query = """SELECT f.id FROM ferimentos f
+                              INNER JOIN pacientes p ON f.paciente_id = p.id
+                              WHERE f.id = %s AND p.usuario_id = %s"""
+
+        cursor.execute(verificacao_query, (ferimento_id, usuario_logado['id']))
+
+        if not cursor.fetchone():
+            raise Exception("Ferimento não encontrado ou não pertence ao usuário")
+
+        query = """UPDATE ferimentos 
+                   SET descricao = %s, data_ocorrencia = %s, localizacao = %s 
+                   WHERE id = %s"""
+
+        cursor.execute(query, (descricao, data_ocorrencia, localizacao, ferimento_id))
+
+        if cursor.rowcount == 0:
+            raise Exception("Ferimento não encontrado")
+
+        return True
+
+    except Exception as e:
+        print(f"Erro ao atualizar ferimento: {e}")
+        raise e
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conexao:
+            conexao.close()
+
+
+def excluir_ferimento(ferimento_id):
+    """Exclui um ferimento do banco de dados"""
+    conexao = None
+    cursor = None
+
+    try:
+        if not usuario_logado:
+            raise Exception("Usuário não está logado")
+
+        conexao = conectar()
+        cursor = conexao.cursor()
+
+        # Verifica se o ferimento pertence ao usuário logado
+        verificacao_query = """SELECT f.id FROM ferimentos f
+                              INNER JOIN pacientes p ON f.paciente_id = p.id
+                              WHERE f.id = %s AND p.usuario_id = %s"""
+
+        cursor.execute(verificacao_query, (ferimento_id, usuario_logado['id']))
+
+        if not cursor.fetchone():
+            raise Exception("Ferimento não encontrado ou não pertence ao usuário")
+
+        query = "DELETE FROM ferimentos WHERE id = %s"
+        cursor.execute(query, (ferimento_id,))
+
+        if cursor.rowcount == 0:
+            raise Exception("Ferimento não encontrado")
+
+        return True
+
+    except Exception as e:
+        print(f"Erro ao excluir ferimento: {e}")
+        raise e
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conexao:
+            conexao.close()
