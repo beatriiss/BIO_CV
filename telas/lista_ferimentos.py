@@ -150,27 +150,49 @@ class ListaFerimentos(QMainWindow):
                 background-color: white;
                 border: 1px solid #ddd;
                 border-radius: 8px;
-                padding: 5px;
+                margin: 2px;
             }
         """)
-        ferimento_frame.setFixedHeight(80)
+        ferimento_frame.setFixedHeight(100)  # Aumentei para 100px
 
         # Layout vertical para o item
         item_layout = QVBoxLayout(ferimento_frame)
-        item_layout.setContentsMargins(15, 10, 15, 10)
+        item_layout.setContentsMargins(15, 15, 15, 15)  # Margens maiores
+        item_layout.setSpacing(10)  # Mais espaçamento entre elementos
 
         # Layout superior com descrição e botões
         top_layout = QHBoxLayout()
+        top_layout.setAlignment(Qt.AlignVCenter)  # Alinha verticalmente ao centro
 
         # Descrição do ferimento (limitada)
-        descricao = ferimento['descricao'][:50] + "..." if len(ferimento['descricao']) > 50 else ferimento['descricao']
+        descricao = ferimento['descricao'][:40] + "..." if len(ferimento['descricao']) > 40 else ferimento['descricao']
         descricao_label = QLabel(f"📋 {descricao}")
         descricao_label.setFont(QFont("Arial", 12, QFont.Bold))
         descricao_label.setStyleSheet("color: #333; border: none;")
+        descricao_label.setWordWrap(False)
         top_layout.addWidget(descricao_label)
 
         # Espaçador
         top_layout.addStretch()
+
+        # Botão de análises (NOVO)
+        analises_button = QPushButton("🔬 Análises")
+        analises_button.setStyleSheet("""
+            QPushButton {
+                background-color: darkgreen;
+                color: white;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 11px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #006400;
+            }
+        """)
+        analises_button.setFixedSize(90, 30)
+        analises_button.clicked.connect(lambda: self.abrir_analises(ferimento))
+        top_layout.addWidget(analises_button)
 
         # Botão de editar
         editar_button = QPushButton("✏️ Editar")
@@ -178,15 +200,16 @@ class ListaFerimentos(QMainWindow):
             QPushButton {
                 background-color: #17a2b8;
                 color: white;
-                border-radius: 5px;
+                border-radius: 4px;
                 padding: 6px 12px;
                 font-size: 11px;
-                margin-right: 5px;
+                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #138496;
             }
         """)
+        editar_button.setFixedSize(80, 30)  # Tamanho fixo maior
         editar_button.clicked.connect(lambda: self.abrir_edicao(ferimento))
         top_layout.addWidget(editar_button)
 
@@ -196,14 +219,15 @@ class ListaFerimentos(QMainWindow):
             QPushButton {
                 background-color: #dc3545;
                 color: white;
-                border-radius: 5px;
-                padding: 6px 10px;
-                font-size: 11px;
+                border-radius: 4px;
+                padding: 6px;
+                font-size: 12px;
             }
             QPushButton:hover {
                 background-color: #c82333;
             }
         """)
+        excluir_button.setFixedSize(35, 30)  # Tamanho fixo maior
         excluir_button.clicked.connect(lambda: self.confirmar_exclusao(ferimento))
         top_layout.addWidget(excluir_button)
 
@@ -224,6 +248,14 @@ class ListaFerimentos(QMainWindow):
         item_layout.addLayout(bottom_layout)
 
         return ferimento_frame
+
+    def abrir_analises(self, ferimento):
+        """Abre as análises do ferimento (por enquanto só mensagem)"""
+        QMessageBox.information(
+            self,
+            "Análises de Ferimento",
+            f"Funcionalidade em desenvolvimento!\n\nFerimento: {ferimento['descricao'][:30]}...\nLocalização: {ferimento['localizacao']}\nData: {self.formatar_data(ferimento['data_ocorrencia'])}"
+        )
 
     def carregar_ferimentos(self):
         """Carrega todos os ferimentos do banco UMA VEZ"""
